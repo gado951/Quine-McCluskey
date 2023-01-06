@@ -1,6 +1,8 @@
 # Quine McCluskey algorithm for minimizing logical expressions
 # Author: Suman Adhikari
 
+from collections import Counter
+
 def mul(x,y): # Multiply 2 minterms
     res = []
     for i in x:
@@ -14,11 +16,14 @@ def mul(x,y): # Multiply 2 minterms
     return res
 
 def multiply(x,y): # Multiply 2 expressions
+    print("multiply(",x,",",y,")")
     res = []
     for i in x:
         for j in y:
             tmp = mul(i,j)
-            res.append(tmp) if len(tmp) != 0 else None
+            print("i:",i,"j:",j,"tmp:",tmp)
+            res.append(tmp) if len(tmp) != 0 and tmp not in res else None
+    print("res:",res)
     return res
 
 def refine(my_list,dc_list): # Removes don't care terms from a given list and returns refined list
@@ -103,6 +108,8 @@ for minterm in minterms:
 # Primary grouping ends
 
 #Primary group printing starts
+
+
 print("\n\n\n\nGroup No.\tMinterms\tBinary of Minterms\n%s"%('='*50))
 for i in sorted(groups.keys()):
     print("%5d:"%i) # Prints group number
@@ -129,6 +136,8 @@ while True:
                     marked.add(j) # Mark element j
                     marked.add(k) # Mark element k
         m += 1
+
+
     local_unmarked = set(flatten(tmp)).difference(marked) # Unmarked elements of each table
     all_pi = all_pi.union(local_unmarked) # Adding Prime Implicants to global list
     print("Unmarked elements(Prime Implicants) of this table:",None if len(local_unmarked)==0 else ', '.join(local_unmarked)) # Printing Prime Implicants of current table
@@ -152,6 +161,7 @@ chart = {}
 print('\n\n\nPrime Implicants chart:\n\n    Minterms    |%s\n%s'%(' '.join((' '*(sz-len(str(i))))+str(i) for i in mt),'='*(len(mt)*(sz+1)+16)))
 for i in all_pi:
     merged_minterms,y = findminterms(i),0
+    #print("i,merged_minterms:",i,merged_minterms)
     print("%-16s|"%','.join(merged_minterms),end='')
     for j in refine(merged_minterms,dc):
         x = mt.index(int(j))*(sz+1) # The position where we should put 'X'
@@ -166,17 +176,22 @@ for i in all_pi:
 
 EPI = findEPI(chart) # Finding essential prime implicants
 print("\nEssential Prime Implicants: "+', '.join(str(i) for i in EPI))
-removeTerms(chart,EPI) # Remove EPI related columns from chart
+removeTerms(chart,EPI) # Remove EPI related columns from chart，
+
+
 
 if(len(chart) == 0): # If no minterms remain after removing EPI related columns
-    final_result = [findVariables(i) for i in EPI] # Final result with only EPIs
+    final_result = [findVariables(i) for i in EPI] # Final result with only EPIs，findVariables(i)會把0-11轉成["A'", 'C', 'D']
 else: # Else follow Petrick's method for further simplification
-    P = [[findVariables(j) for j in chart[i]] for i in chart]
-    while len(P)>1: # Keep multiplying until we get the SOP form of P
-        P[1] = multiply(P[0],P[1])
-        P.pop(0)
-    final_result = [min(P[0],key=len)] # Choosing the term with minimum variables from P
-    final_result.extend(findVariables(i) for i in EPI) # Adding the EPIs to final solution
+    while chart:
+        P2 =[]
+        for i in chart:
+            for j in chart[i]:
+                P2.append(j)
+        coun = Counter(P2).most_common()
+        most = coun[0][0]
+        EPI.append(most)
+        removeTerms(chart,[most])
+    final_result = [findVariables(i) for i in EPI] # Final result with only EPIs
 print('\n\nSolution: F = '+' + '.join(''.join(i) for i in final_result))
-
 input("\nPress enter to exit...")
